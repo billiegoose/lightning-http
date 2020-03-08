@@ -12,6 +12,7 @@ class Queue {
   }
 
   end () {
+    if (this.#array.length === 0) return // .end() is idemponent
     this.#array[this.#array.length - 1].resolve()
   }
 

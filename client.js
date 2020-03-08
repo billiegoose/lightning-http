@@ -22,6 +22,8 @@ http.request({
 }).then(async res => {
   console.log(res)
   for await (chunk of res.body) {
-    process.stdout.write(chalk.red(chunk.toString('utf8')))
+    if (chunk) {
+      process.stdout.write(chalk.red(chunk.toString('utf8')))
+    }
   }
 })

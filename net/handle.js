@@ -15,9 +15,7 @@ module.exports = function (options, callback, errHandler) {
     c.on('data', async (chunk) => {
       rbody.push(...request.push(chunk))
   
-      if (request.state === ParserStates.FIN) {
-        rbody.end()
-      }
+      if (request.state === ParserStates.FIN) rbody.end()
   
       if (request.state > ParserStates.HEADERS) {
         if (once) return
@@ -40,7 +38,8 @@ module.exports = function (options, callback, errHandler) {
         c.end()
       }
     });
-  
+
+    c.on('end', () => rbody.end())
   });
   
   server.listen(options.port);

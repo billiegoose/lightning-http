@@ -25,6 +25,7 @@ function request({ url, method, headers, body }) {
       }
       req.end()
       c.write(req.read())
+      c.end()
     }
   });
 
@@ -35,6 +36,8 @@ function request({ url, method, headers, body }) {
   c.on('data', (chunk) => {
     rbody.push(...response.push(chunk))
     
+    if (response.state === ParserStates.FIN) rbody.end()
+
     if (response.state > ParserStates.HEADERS) {
       res.resolve({
         url,
@@ -45,7 +48,6 @@ function request({ url, method, headers, body }) {
         statusMessage: response.statusMessage,
       })
     }
-    if (response.state === ParserStates.FIN) c.end()
   });
 
   c.on('end', () => {
