@@ -22,12 +22,12 @@ module.exports = function (options, callback, errHandler) {
         once = true
         let { statusCode, statusMessage, headers, body } = await callback({ path: request.path, method: request.method, headers: request.headers, body: rbody })
   
-        let fixed = Array.isArray(body) && body.length === 1
+        let fixed = body && Array.isArray(body) && body.length === 1
   
-        const res = new HttpResponseCoder(statusCode, statusMessage, headers, fixed ? body[0] : void 0)
+        const res = new HttpResponseCoder(statusCode, statusMessage, headers, (body && fixed) ? body[0] : void 0)
         c.write(res.read())
   
-        if (!fixed) {
+        if (body && !fixed) {
           for await (const piece of body) {
             res.push(piece)
             c.write(res.read())

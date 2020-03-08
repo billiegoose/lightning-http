@@ -12,7 +12,7 @@ async function * makeBody () {
 }
 
 http.request({
-  url: 'http://localhost:8081/form',
+  url: 'http://localhost:8081/uppercase',
   method: 'POST',
   headers:  {
     'User-Agent': 'curl/7.64.1',

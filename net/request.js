@@ -14,19 +14,19 @@ const { HttpRequestCoder } = require('../HttpCoder.js')
 function request({ url, method, headers, body }) {
   const u = new URL(url)
   const c = net.createConnection({ port: u.port }, async () => {
-    let fixed = Array.isArray(body) && body.length === 1
+    let fixed = body && (Array.isArray(body) && body.length === 1)
 
-    let req = new HttpRequestCoder(url, method, headers, fixed ? body[0] : void 0)
+    let req = new HttpRequestCoder(url, method, headers, (body && fixed) ? body[0] : void 0)
     c.write(req.read())
-    if (!fixed) {
+    if (body && !fixed) {
       for await (const piece of body) {
         req.push(piece)
         c.write(req.read())
       }
       req.end()
       c.write(req.read())
-      c.end()
     }
+    c.end()
   });
 
   let response = new HttpResponseParser()
