@@ -5,7 +5,7 @@ const net = require('net')
 const Deferable = require('../Deferable.js')
 const Queue = require('../Queue.js')
 const { ParserStates, HttpResponseParser } = require('../HttpParser.js')
-const { HttpRequestCoder } = require('../HttpCoder.js')
+const { startRequest, writeChunk } = require('../HttpCoder.js')
 
 /**
  * @param {GitHttpRequest} request
@@ -16,15 +16,12 @@ function request({ url, method, headers, body }) {
   const c = net.createConnection({ port: u.port }, async () => {
     let fixed = body && (Array.isArray(body) && body.length === 1)
 
-    let req = new HttpRequestCoder(url, method, headers, (body && fixed) ? body[0] : void 0)
-    c.write(req.read())
+    c.write(startRequest(url, method, headers, fixed ? body[0] : void 0))
     if (body && !fixed) {
       for await (const piece of body) {
-        req.push(piece)
-        c.write(req.read())
+        c.write(writeChunk(piece))
       }
-      req.end()
-      c.write(req.read())
+      c.write(writeChunk())
     }
     c.end()
   });

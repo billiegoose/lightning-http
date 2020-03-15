@@ -1,11 +1,12 @@
+const { encode } = require('isomorphic-textencoder')
+const concat = require('concat-buffers')
+
 /**
  * 
  * @param {GitHttpRequest} req 
  */
 function writeRequestHead (u, method = 'GET') {
-  return `${method.toUpperCase()} ${u.pathname}${u.search}${u.hash} HTTP/1.1\r
-Host: ${u.host}\r
-`
+  return `${method.toUpperCase()} ${u.pathname}${u.search}${u.hash} HTTP/1.1\r\nHost: ${u.host}\r\n`
 }
 
 /**
@@ -14,8 +15,7 @@ Host: ${u.host}\r
  * @param {string} statusMessage
  */
 function writeResponseHead (statusCode = 200, statusMessage = 'OK') {
-  return `HTTP/1.1 ${statusCode} ${statusMessage}\r
-`
+  return `HTTP/1.1 ${statusCode} ${statusMessage}\r\n`
 }
 
 /**
@@ -30,87 +30,65 @@ function writeHeaders(headers) {
 }
 
 function writeChunk(chunk) {
-  return `${chunk.length.toString(16).toUpperCase()}\r
-${chunk}\r
-`
+  return chunk ? concat(encode(`${chunk.length.toString(16).toUpperCase()}\r\n`), chunk, encode('\r\n')) : encode('0\r\n\r\n')
 }
 
-function finalChunk() {
-  return `0\r
-`
+/**
+ * @param {number} statusCode
+ * @param {string} statusMessage
+ * @param {Object<string, string>} headers
+ * @param {Uint8Array} [body]
+ * @returns {Uint8Array}
+ */
+function startResponse(statusCode, statusMessage, headers, body) {
+  let wip = ''
+  wip += writeResponseHead(statusCode, statusMessage)
+  wip += writeHeaders({ 'Date': new Date().toUTCString() })
+
+  return start(wip, headers, body)
 }
 
-class HttpResponseCoder {
-  #text = ''
-  constructor(statusCode, statusMessage, headers, body) {
-    this.#text += writeResponseHead(statusCode, statusMessage)
-    this.#text += writeHeaders({ 'Date': new Date().toUTCString() })
-    this.#text += writeHeaders(headers)
-    if (body) {
-      this.#text += writeHeaders({
-        'Content-Length': body.length
-      })
-    } else {
-      this.#text += writeHeaders({
-        'Transfer-Encoding': 'chunked'
-      })
-    }
-    this.#text += '\r\n'
-    if (body) {
-      this.#text += body
-    }
-  }
-  push (chunk) {
-    this.#text += writeChunk(chunk)
-  }
-  end () {
-    this.#text += finalChunk()
-    this.#text += '\r\n'
-  }
-  read () {
-    let text = this.#text
-    this.#text = ''
-    return text
-  }
+/**
+ * @param {string} url
+ * @param {'GET'|'POST'|'PUT'|'DELETE'} method
+ * @param {Object<string, string>} headers
+ * @param {Uint8Array} [body]
+ * @returns {Uint8Array}
+ */
+function startRequest(url, method, headers, body) {
+  let wip = ''
+  const u = new URL(url)
+  wip += writeRequestHead(u, method)
+
+  return start(wip, headers, body)
 }
 
-class HttpRequestCoder {
-  #text = ''
-  constructor(url, method, headers, body) {
-    const u = new URL(url)
-    this.#text += writeRequestHead(u, method)
-    this.#text += writeHeaders(headers)
-    if (body) {
-      this.#text += writeHeaders({
-        'Content-Length': body.length
-      })
-    } else {
-      this.#text += writeHeaders({
-        'Transfer-Encoding': 'chunked'
-      })
-    }
-    this.#text += '\r\n'
-    if (body) {
-      this.#text += body
-    }
+/**
+ * @param {Object<string, string>} headers
+ * @param {Uint8Array} [body]
+ * @returns {Uint8Array}
+ */
+function start(wip, headers, body) {
+  wip += writeHeaders(headers)
+  if (body) {
+    wip += writeHeaders({
+      'Content-Length': body.length
+    })
+  } else {
+    wip += writeHeaders({
+      'Transfer-Encoding': 'chunked'
+    })
   }
-  push (chunk) {
-    this.#text += writeChunk(chunk)
+  wip += '\r\n'
+  wip = encode(wip)
+  if (body) {
+    wip = concat(wip, body)
   }
-  end () {
-    this.#text += finalChunk()
-    this.#text += '\r\n'
-  }
-  read () {
-    let text = this.#text
-    this.#text = ''
-    return text
-  }
+  return wip
 }
 
 module.exports = {
-  HttpResponseCoder,
-  HttpRequestCoder
+  startRequest,
+  startResponse,
+  writeChunk,
 }
-
-

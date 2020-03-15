@@ -1,6 +1,7 @@
 const fs = require('fs')
 
 const chalk = require('chalk')
+const { encode } = require('isomorphic-textencoder')
 
 const http = require('./net')
 
@@ -15,9 +16,9 @@ const bodies = {
           'Content-Type': 'text/html',
         },
         body: [
-          '<html><body><h1>\n',
-          '\tHello world!\n',
-          '</h1></body></html>\n'
+          encode('<html><body><h1>\n'),
+          encode('\tHello world!\n'),
+          encode('</h1></body></html>\n')
         ]
       }
     }
@@ -25,11 +26,13 @@ const bodies = {
   '/favicon.ico': {
     GET () {
       return {
-        statusCode: 404,
-        statusMessage: 'Not found',
+        statusCode: 200,
+        statusMessage: 'OK',
         headers: {
           'Connection': 'close',
+          'Content-Type': 'image/x-icon',
         },
+        body: fs.createReadStream('./public/favicon.ico')
       }
     }
   },
@@ -39,7 +42,7 @@ const bodies = {
         for await (const chunk of body) {
           if (chunk) {
             process.stdout.write(chalk.red(chunk.toString('utf8')))
-            yield chunk.toString('utf8').toUpperCase()
+            yield encode(chunk.toString('utf8').toUpperCase())
           }
         } 
       }

@@ -1,4 +1,5 @@
 const chalk = require('chalk')
+const { encode } = require('isomorphic-textencoder')
 
 const http = require('./net')
 
@@ -6,9 +7,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 async function * makeBody () {
   await sleep(1000)
-  yield 'Hello,\n'
+  yield encode('Hello,\n')
   await sleep(1000)
-  yield 'world!\n'
+  yield encode('world!\n')
 }
 
 http.request({

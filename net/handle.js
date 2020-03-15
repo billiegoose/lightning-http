@@ -3,7 +3,7 @@ const net = require('net')
 const Queue = require('../Queue.js')
 
 const { ParserStates, HttpRequestParser } = require('../HttpParser.js')
-const { HttpResponseCoder } = require('../HttpCoder.js')
+const { startResponse, writeChunk } = require('../HttpCoder.js')
 
 module.exports = function (options, callback, errHandler) {
 
@@ -24,16 +24,13 @@ module.exports = function (options, callback, errHandler) {
   
         let fixed = body && Array.isArray(body) && body.length === 1
   
-        const res = new HttpResponseCoder(statusCode, statusMessage, headers, (body && fixed) ? body[0] : void 0)
-        c.write(res.read())
+        c.write(startResponse(statusCode, statusMessage, headers, fixed ? body[0] : void 0))
   
         if (body && !fixed) {
           for await (const piece of body) {
-            res.push(piece)
-            c.write(res.read())
+            c.write(writeChunk(piece))
           }
-          res.end()
-          c.write(res.read())
+          c.write(writeChunk())
         }
         c.end()
       }
