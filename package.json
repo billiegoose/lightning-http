@@ -17,6 +17,7 @@
     "chalk": "^3.0.0",
     "concat-buffers": "^1.0.0",
     "express": "^4.17.1",
-    "isomorphic-textencoder": "^1.0.1"
+    "isomorphic-textencoder": "^1.0.1",
+    "path-to-regexp": "^6.1.0"
   }
 }
